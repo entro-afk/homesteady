@@ -34,8 +34,8 @@ async def check_if_reminder_needed():
         i = 0
         for _row in res:
             user = client.get_user(_row[0])
-            past = datetime.datetime.now() - datetime.timedelta(minutes=2)
-            future = datetime.datetime.now() + datetime.timedelta(minutes=2)
+            past = datetime.datetime.now() - datetime.timedelta(seconds=30)
+            future = datetime.datetime.now() + datetime.timedelta(seconds=30)
 
             if _row[2].time() > past.time() and _row[2].time() < future.time():
                 await user.send(f"Hello! You have a Homestead reminder for {_row[2].time().replace(microsecond=0).strftime('%H:%M')}")
