@@ -35,7 +35,6 @@ async def check_user_region(ctx):
         user_info = res.first()
         if user_info is None:
             msg = await ctx.author.send("I think you're new here. Please select your server region:\n🗽 US\n⚽ SA\n🧀 EU\n🐨 OC")
-            print(ctx)
             emoji_to_server_mapping = {
                 "🗽": 'US',
                 "⚽": 'SA',
@@ -60,6 +59,7 @@ async def check_user_region(ctx):
         res = conn.execute(select_st)
         server_timezone = res.first()
         await ctx.author.send(f"Your timezone is {server_timezone[1]}")
+        db.dispose()
         return server_timezone[1]
 
 
@@ -74,7 +74,6 @@ async def change_user_region(ctx):
         res = conn.execute(select_st)
         user_info = res.first()
         msg = await ctx.author.send("Please select your new server region:\n🗽 US\n⚽ SA\n🧀 EU\n🐨 OC")
-        print(ctx)
         emoji_to_server_mapping = {
             "🗽": 'US',
             "⚽": 'SA',
@@ -91,12 +90,11 @@ async def change_user_region(ctx):
             conn.execute(update_statement)
         except Exception as err:
             ctx.author.send("You've timed out")
-
+    db.dispose()
 
 @client.command(pass_context=True, name='homie')
 async def send_harvest_form(ctx):
     msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
-    print(ctx)
     await msg.add_reaction("🌿")
     await msg.add_reaction("🐰")
     await msg.add_reaction("⚒")
@@ -107,12 +105,9 @@ async def send_harvest_form(ctx):
     except Exception as err:
         ctx.author.send("You've timed out")
     # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
-    print(submit_reaction)
-    print(msg)
     channel = discord.utils.get(client.private_channels)
     time.sleep(2)
     cached_msg = await channel.fetch_message(msg.id)
-    print(cached_msg)
     emoji_to_crop_mapping = {
         "🌿": "herbs",
         "🐰": "beasts",
@@ -161,7 +156,6 @@ async def start_session(ctx, categories):
                     submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
                 except Exception as err:
                     ctx.author.send("You've timed out")
-                print(submit_reaction)
                 channel = discord.utils.get(client.private_channels)
                 time.sleep(1)
                 cached_msg = await channel.fetch_message(msg.id)
@@ -189,6 +183,7 @@ async def start_session(ctx, categories):
                 await confirm_time(ctx, conn, table, eight_hour_reminder_crops, 8)
             if len(twelve_hour_reminder_crops) > 0:
                 await confirm_time(ctx, conn, table, twelve_hour_reminder_crops, 12)
+        db.dispose()
     except Exception as err:
         print(f"Error: {err}")
 
@@ -218,16 +213,17 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
         conn.execute(insert_statement)
         await ctx.author.send(f'We have placed a {hours_reminder}-hour reminder for you for the following products: {", ".join(reminder_crops_array)}')
     elif submit_reaction.emoji == "⏰":
-        await resend_form(ctx, conn, table, time_now, displayed_reminder_time, reminder_crops_array)
+        await resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array)
 
 
-async def resend_form(ctx, conn, table, time_now, displayed_reminder_time, reminder_crops_array):
+async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array):
     is_a_valid_response = False
     while not is_a_valid_response:
         await ctx.author.send("In about how many more minutes would you like to receive your reminder? 200 minutes? Let me know.")
         response_msg = await client.wait_for('message', check=check)
         if hasNumbers(response_msg.clean_content):
             reminder_time = time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
+            displayed_reminder_time = displayed_time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
             await ctx.author.send(f'You will be reminded at {displayed_reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
             prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you or ⏰ to tell us in how many minutes you would like to be reminded')
             await prompt_check_reminder.add_reaction("✅")
@@ -251,15 +247,6 @@ def hasNumbers(inputString):
 def cancel_session(message):
     return message.clean_content == "!cancel"
 
-@client.event
-async def on_message(message):
-    if not message.author == client.user:
-        print(message)
-    await client.process_commands(message)
-
-
-async def on_reaction_add(reaction, user):
-    print(reaction)
 # test token
 # client.run(homesteadyConf['test_bot_token'])
 # pwm token

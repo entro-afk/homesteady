@@ -44,6 +44,7 @@ async def check_if_reminder_needed():
                     )
                 )
                 conn.execute(delete_entry)
+    db.dispose()
 
 client.run(homesteadyConf['bot_token'])
 
