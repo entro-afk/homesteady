@@ -30,8 +30,6 @@ async def check_if_reminder_needed():
         table = Table('alarms', metadata, autoload=True, autoload_with=conn)
         select_st = select([table]).where(cast(table.c.timeToNotify, Date) == datetime.datetime.today().date())
         res = conn.execute(select_st)
-        reminders = []
-        i = 0
         for _row in res:
             user = client.get_user(_row[0])
             past = datetime.datetime.now() - datetime.timedelta(seconds=30)
@@ -46,9 +44,6 @@ async def check_if_reminder_needed():
                     )
                 )
                 conn.execute(delete_entry)
-            reminders.append(_row)
-            print(_row)
-        print(reminders)
 
 client.run(homesteadyConf['bot_token'])
 
