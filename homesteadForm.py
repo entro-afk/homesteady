@@ -13,6 +13,7 @@ import aiohttp
 import time
 from sqlalchemy import *
 import datetime
+import pytz
 
 client = commands.Bot(command_prefix='+')
 with open(r'homesteadyConf.yaml') as file:
@@ -22,18 +23,88 @@ with open(r'homesteadyConf.yaml') as file:
 
     print(homesteadyConf)
 
+async def check_user_region(ctx):
+    db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
+    db = create_engine(db_string, echo=True)
+    metadata = MetaData(schema="homesteadProduction")
+
+    with db.connect() as conn:
+        discord_server_table = Table('discordIDServerMapping', metadata, autoload=True, autoload_with=conn)
+        select_st = select([discord_server_table]).where(discord_server_table.c.discordID == ctx.author.id)
+        res = conn.execute(select_st)
+        user_info = res.first()
+        if user_info is None:
+            msg = await ctx.author.send("I think you're new here. Please select your server region:\n🗽 US\n⚽ SA\n🧀 EU\n🐨 OC")
+            print(ctx)
+            emoji_to_server_mapping = {
+                "🗽": 'US',
+                "⚽": 'SA',
+                "🧀": 'EU',
+                "🐨": 'OC'
+            }
+            await msg.add_reaction("🗽")
+            await msg.add_reaction("⚽")
+            await msg.add_reaction("🧀")
+            await msg.add_reaction("🐨")
+            try:
+                region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+                insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.nick or ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
+                conn.execute(insert_statement)
+                res = conn.execute(select_st)
+                user_info = res.first()
+            except Exception as err:
+                print(err)
+                await ctx.author.send("You've timed out")
+        server_timezone_mapping_table = Table('serverTimezoneMapping', metadata, autoload=True, autoload_with=conn)
+        select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
+        res = conn.execute(select_st)
+        server_timezone = res.first()
+        await ctx.author.send(f"Your timezone is {server_timezone[1]}")
+        return server_timezone[1]
+
+
+async def change_user_region(ctx):
+    db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
+    db = create_engine(db_string, echo=True)
+    metadata = MetaData(schema="homesteadProduction")
+
+    with db.connect() as conn:
+        discord_server_table = Table('discordIDServerMapping', metadata, autoload=True, autoload_with=conn)
+        select_st = select([discord_server_table]).where(discord_server_table.c.discordID == ctx.author.id)
+        res = conn.execute(select_st)
+        user_info = res.first()
+        msg = await ctx.author.send("Please select your new server region:\n🗽 US\n⚽ SA\n🧀 EU\n🐨 OC")
+        print(ctx)
+        emoji_to_server_mapping = {
+            "🗽": 'US',
+            "⚽": 'SA',
+            "🧀": 'EU',
+            "🐨": 'OC'
+        }
+        await msg.add_reaction("🗽")
+        await msg.add_reaction("⚽")
+        await msg.add_reaction("🧀")
+        await msg.add_reaction("🐨")
+        try:
+            region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+            update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
+            conn.execute(update_statement)
+        except Exception as err:
+            ctx.author.send("You've timed out")
+
 
 @client.command(pass_context=True, name='homie')
 async def send_harvest_form(ctx):
-    msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒Ores\nThen press the :white_check_mark:")
+    msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
     print(ctx)
     await msg.add_reaction("🌿")
     await msg.add_reaction("🐰")
     await msg.add_reaction("⚒")
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
+    await msg.add_reaction("⏰")
     try:
-        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌", "⏰"] and user != client.user)
     except Exception as err:
         ctx.author.send("You've timed out")
     # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
@@ -52,7 +123,7 @@ async def send_harvest_form(ctx):
     if cached_msg.reactions[4].count > 1:
         await ctx.author.send("Very well you've canceled your request for a reminder.")
     elif cached_msg.reactions[3].count > 1 and cached_msg.reactions[0].count == 1 and cached_msg.reactions[1].count == 1 and cached_msg.reactions[2].count == 1:
-        await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.  Type !cancel anytime to exit out of this session.")
+        await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.")
         categories_to_be_reminded_for= ["herbs", "beasts", "ores"]
         await start_session(ctx, categories_to_be_reminded_for)
     else:
@@ -61,7 +132,6 @@ async def send_harvest_form(ctx):
 
 async def start_session(ctx, categories):
     try:
-        time_now = datetime.datetime.combine(datetime.date.today(), datetime.datetime.now().time())
         db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
         db = create_engine(db_string, echo=True)
         metadata = MetaData(schema="homesteadProduction")
@@ -115,40 +185,51 @@ async def start_session(ctx, categories):
         with db.connect() as conn:
             table = Table('alarms', metadata, autoload=True, autoload_with=conn)
             if len(four_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, time_now, four_hour_reminder_crops, 4)
+                await confirm_time(ctx, conn, table, four_hour_reminder_crops, 4)
             if len(eight_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, time_now, eight_hour_reminder_crops, 8)
+                await confirm_time(ctx, conn, table, eight_hour_reminder_crops, 8)
             if len(twelve_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, time_now, twelve_hour_reminder_crops, 12)
+                await confirm_time(ctx, conn, table, twelve_hour_reminder_crops, 12)
     except Exception as err:
         print(f"Error: {err}")
 
-async def confirm_time(ctx, conn, table, time_now, reminder_crops_array, hours_reminder):
-    reminder_time = time_now + datetime.timedelta(hours=hours_reminder-1, minutes=52)
-    await ctx.author.send(f'You will be reminded at {reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
-    prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you or ⏰ to tell us in how many minutes you would like to be reminded')
-    await prompt_check_reminder.add_reaction("✅")
-    await prompt_check_reminder.add_reaction("⏰")
-    try:
-        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
-    except Exception as err:
-        ctx.author.send("You've timed out")
+async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
+    timezone_set = False
+    while not timezone_set:
+        timezone = await check_user_region(ctx)
+        time_now = datetime.datetime.combine(datetime.date.today(), datetime.datetime.now().time())
+        displayed_time_now = datetime.datetime.now(pytz.timezone(timezone))
+        reminder_time = time_now + datetime.timedelta(hours=hours_reminder - 1, minutes=52)
+        displayed_reminder_time = displayed_time_now + datetime.timedelta(hours=hours_reminder - 1, minutes=52)
+        await ctx.author.send(f'You will be reminded at {displayed_reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
+        prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you\nor ⏰ to tell us in how many minutes you would like to be reminded\nor 🗺️ to change your timezone')
+        await prompt_check_reminder.add_reaction("✅")
+        await prompt_check_reminder.add_reaction("⏰")
+        await prompt_check_reminder.add_reaction("🗺️")
+        try:
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
+        except Exception as err:
+            ctx.author.send("You've timed out")
+        if submit_reaction.emoji in ["✅", "⏰"]:
+            timezone_set = True
+        elif submit_reaction.emoji in ["🗺️"]:
+            await change_user_region(ctx)
     if submit_reaction.emoji == "✅":
-        insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.nick or ctx.author.name, timeToNotify=reminder_time)
+        insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.nick or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time)
         conn.execute(insert_statement)
         await ctx.author.send(f'We have placed a {hours_reminder}-hour reminder for you for the following products: {", ".join(reminder_crops_array)}')
     elif submit_reaction.emoji == "⏰":
-        await resend_form(ctx, conn, table, time_now, reminder_crops_array)
+        await resend_form(ctx, conn, table, time_now, displayed_reminder_time, reminder_crops_array)
 
 
-async def resend_form(ctx, conn, table, time_now, reminder_crops_array):
+async def resend_form(ctx, conn, table, time_now, displayed_reminder_time, reminder_crops_array):
     is_a_valid_response = False
     while not is_a_valid_response:
         await ctx.author.send("In about how many more minutes would you like to receive your reminder? 200 minutes? Let me know.")
         response_msg = await client.wait_for('message', check=check)
         if hasNumbers(response_msg.clean_content):
             reminder_time = time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
-            await ctx.author.send(f'You will be reminded at {reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
+            await ctx.author.send(f'You will be reminded at {displayed_reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
             prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you or ⏰ to tell us in how many minutes you would like to be reminded')
             await prompt_check_reminder.add_reaction("✅")
             await prompt_check_reminder.add_reaction("⏰")
@@ -157,9 +238,9 @@ async def resend_form(ctx, conn, table, time_now, reminder_crops_array):
             except Exception as err:
                 ctx.author.send("You've timed out")
             if submit_reaction.emoji == "✅":
-                insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.nick or ctx.author.name, timeToNotify=reminder_time)
+                insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.nick or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time)
                 conn.execute(insert_statement)
-                await ctx.author.send(f"Your reminder for {reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
+                await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
                 is_a_valid_response = True
 
 
