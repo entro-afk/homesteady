@@ -102,9 +102,8 @@ async def send_harvest_form(ctx):
     await msg.add_reaction("⚒")
     await msg.add_reaction("✅")
     await msg.add_reaction("❌")
-    await msg.add_reaction("⏰")
     try:
-        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌", "⏰"] and user != client.user)
+        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
     except Exception as err:
         ctx.author.send("You've timed out")
     # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
@@ -267,3 +266,4 @@ async def on_reaction_add(reaction, user):
 client.run(homesteadyConf['bot_token'])
 
 # pm2 reload homesteadForm.py --interpreter=python3
+# pm2 start homesteadForm.py --interpreter=python3
