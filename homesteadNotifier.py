@@ -23,7 +23,7 @@ async def on_ready():
 
 async def check_if_reminder_needed():
     db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
-    db = create_engine(db_string, echo=True)
+    db = create_engine(db_string)
     metadata = MetaData(schema="homesteadProduction")
 
     with db.connect() as conn:
