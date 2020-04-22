@@ -92,8 +92,9 @@ async def change_user_region(ctx):
             ctx.author.send("You've timed out")
     db.dispose()
 
-@client.command(pass_context=True, name='homie')
+@client.command(pass_context=True, name='home')
 async def send_harvest_form(ctx):
+    await ctx.message.add_reaction("✅")
     msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
     await msg.add_reaction("🌿")
     await msg.add_reaction("🐰")
