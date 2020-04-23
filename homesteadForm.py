@@ -55,7 +55,7 @@ async def check_user_region(ctx):
             except Exception as err:
                 print(err)
                 await ctx.author.send("You've timed out. Please +home again.")
-                return
+                raise err
         server_timezone_mapping_table = Table('serverTimezoneMapping', metadata, autoload=True, autoload_with=conn)
         select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
         res = conn.execute(select_st)
