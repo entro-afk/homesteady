@@ -47,7 +47,7 @@ async def check_user_region(ctx):
             await msg.add_reaction("🧀")
             await msg.add_reaction("🐨")
             try:
-                region_reaction, user = await client.wait_for('reaction_add', timeout=30.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+                region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
                 insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
                 conn.execute(insert_statement)
                 res = conn.execute(select_st)
@@ -87,7 +87,7 @@ async def change_user_region(ctx):
         await msg.add_reaction("🧀")
         await msg.add_reaction("🐨")
         try:
-            region_reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+            region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
             update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
             conn.execute(update_statement)
         except Exception as err:
@@ -100,14 +100,14 @@ async def send_harvest_form(ctx):
     not_timeout = True
     try:
         await ctx.message.add_reaction("✅")
-        msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:\n **Confirm** ")
+        msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:\n\n **Confirm** :white_check_mark:\n **Cancel** ❌")
         await msg.add_reaction("🌿")
         await msg.add_reaction("🐰")
         await msg.add_reaction("⚒")
         await msg.add_reaction("✅")
         await msg.add_reaction("❌")
         try:
-            submit_reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
             return
