@@ -87,7 +87,7 @@ async def change_user_region(ctx):
         await msg.add_reaction("🧀")
         await msg.add_reaction("🐨")
         try:
-            region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+            region_reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
             update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
             conn.execute(update_statement)
         except Exception as err:
