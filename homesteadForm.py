@@ -47,14 +47,14 @@ async def check_user_region(ctx):
             await msg.add_reaction("🧀")
             await msg.add_reaction("🐨")
             try:
-                region_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+                region_reaction, user = await client.wait_for('reaction_add', timeout=30.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
                 insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
                 conn.execute(insert_statement)
                 res = conn.execute(select_st)
                 user_info = res.first()
             except Exception as err:
                 print(err)
-                await ctx.author.send("You've timed out")
+                await ctx.author.send("You've timed out. Please +home again.")
                 return
         server_timezone_mapping_table = Table('serverTimezoneMapping', metadata, autoload=True, autoload_with=conn)
         select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
@@ -91,7 +91,7 @@ async def change_user_region(ctx):
             update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
             conn.execute(update_statement)
         except Exception as err:
-            await ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out. Please +home again.")
             return
     db.dispose()
 
@@ -109,7 +109,7 @@ async def send_harvest_form(ctx):
         try:
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
         except Exception as err:
-            await ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out. Please +home again.")
             return
         # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
         if not_timeout:
@@ -165,7 +165,7 @@ async def start_session(ctx, categories):
                 try:
                     submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
                 except Exception as err:
-                    await ctx.author.send("You've timed out")
+                    await ctx.author.send("You've timed out. Please +home again.")
                     return
                 channel = discord.utils.get(client.private_channels)
                 time.sleep(1)
@@ -214,7 +214,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
         try:
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
         except Exception as err:
-            await ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out. Please +home again.")
             return
         if submit_reaction.emoji in ["✅", "⏰"]:
             timezone_set = True
@@ -243,7 +243,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
             try:
                 submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
             except Exception as err:
-                await ctx.author.send("You've timed out")
+                await ctx.author.send("You've timed out. Please +home again.")
                 return
             if submit_reaction.emoji == "✅":
                 insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
