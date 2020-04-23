@@ -90,7 +90,7 @@ async def change_user_region(ctx):
             update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
             conn.execute(update_statement)
         except Exception as err:
-            ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out")
     db.dispose()
 
 @client.command(pass_context=True, name='home')
@@ -106,7 +106,7 @@ async def send_harvest_form(ctx):
         try:
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
         except Exception as err:
-            ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out")
         # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
         channel = discord.utils.get(client.private_channels)
         time.sleep(2)
@@ -160,7 +160,7 @@ async def start_session(ctx, categories):
                 try:
                     submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
                 except Exception as err:
-                    ctx.author.send("You've timed out")
+                    await ctx.author.send("You've timed out")
                 channel = discord.utils.get(client.private_channels)
                 time.sleep(1)
                 cached_msg = await channel.fetch_message(msg.id)
@@ -208,7 +208,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
         try:
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
         except Exception as err:
-            ctx.author.send("You've timed out")
+            await ctx.author.send("You've timed out")
         if submit_reaction.emoji in ["✅", "⏰"]:
             timezone_set = True
         elif submit_reaction.emoji in ["🗺️"]:
@@ -236,7 +236,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
             try:
                 submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
             except Exception as err:
-                ctx.author.send("You've timed out")
+                await ctx.author.send("You've timed out")
             if submit_reaction.emoji == "✅":
                 insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
                 conn.execute(insert_statement)
