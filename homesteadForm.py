@@ -95,36 +95,39 @@ async def change_user_region(ctx):
 
 @client.command(pass_context=True, name='home')
 async def send_harvest_form(ctx):
-    await ctx.message.add_reaction("✅")
-    msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
-    await msg.add_reaction("🌿")
-    await msg.add_reaction("🐰")
-    await msg.add_reaction("⚒")
-    await msg.add_reaction("✅")
-    await msg.add_reaction("❌")
     try:
-        submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+        await ctx.message.add_reaction("✅")
+        msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
+        await msg.add_reaction("🌿")
+        await msg.add_reaction("🐰")
+        await msg.add_reaction("⚒")
+        await msg.add_reaction("✅")
+        await msg.add_reaction("❌")
+        try:
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+        except Exception as err:
+            ctx.author.send("You've timed out")
+        # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
+        channel = discord.utils.get(client.private_channels)
+        time.sleep(2)
+        cached_msg = await channel.fetch_message(msg.id)
+        emoji_to_crop_mapping = {
+            "🌿": "herbs",
+            "🐰": "beasts",
+            "⚒": "ores"
+        }
+        categories_to_be_reminded_for = []
+        if cached_msg.reactions[4].count > 1:
+            await ctx.author.send("Very well you've canceled your request for a reminder.")
+        elif cached_msg.reactions[3].count > 1 and cached_msg.reactions[0].count == 1 and cached_msg.reactions[1].count == 1 and cached_msg.reactions[2].count == 1:
+            await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.")
+            categories_to_be_reminded_for= ["herbs", "beasts", "ores"]
+            await start_session(ctx, categories_to_be_reminded_for)
+        else:
+            categories_to_be_reminded_for += [emoji_to_crop_mapping[reaction.emoji] for reaction in cached_msg.reactions[0:3] if reaction.count > 1]
+            await start_session(ctx, categories_to_be_reminded_for)
     except Exception as err:
-        ctx.author.send("You've timed out")
-    # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
-    channel = discord.utils.get(client.private_channels)
-    time.sleep(2)
-    cached_msg = await channel.fetch_message(msg.id)
-    emoji_to_crop_mapping = {
-        "🌿": "herbs",
-        "🐰": "beasts",
-        "⚒": "ores"
-    }
-    categories_to_be_reminded_for = []
-    if cached_msg.reactions[4].count > 1:
-        await ctx.author.send("Very well you've canceled your request for a reminder.")
-    elif cached_msg.reactions[3].count > 1 and cached_msg.reactions[0].count == 1 and cached_msg.reactions[1].count == 1 and cached_msg.reactions[2].count == 1:
-        await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.")
-        categories_to_be_reminded_for= ["herbs", "beasts", "ores"]
-        await start_session(ctx, categories_to_be_reminded_for)
-    else:
-        categories_to_be_reminded_for += [emoji_to_crop_mapping[reaction.emoji] for reaction in cached_msg.reactions[0:3] if reaction.count > 1]
-        await start_session(ctx, categories_to_be_reminded_for)
+        print(err)
 
 async def start_session(ctx, categories):
     try:
