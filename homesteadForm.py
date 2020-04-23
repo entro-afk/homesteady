@@ -107,7 +107,7 @@ async def send_harvest_form(ctx):
         await msg.add_reaction("✅")
         await msg.add_reaction("❌")
         try:
-            submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
             return
