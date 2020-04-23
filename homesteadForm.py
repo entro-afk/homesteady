@@ -55,6 +55,7 @@ async def check_user_region(ctx):
             except Exception as err:
                 print(err)
                 await ctx.author.send("You've timed out")
+                return
         server_timezone_mapping_table = Table('serverTimezoneMapping', metadata, autoload=True, autoload_with=conn)
         select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
         res = conn.execute(select_st)
@@ -91,13 +92,15 @@ async def change_user_region(ctx):
             conn.execute(update_statement)
         except Exception as err:
             await ctx.author.send("You've timed out")
+            return
     db.dispose()
 
 @client.command(pass_context=True, name='home')
 async def send_harvest_form(ctx):
+    not_timeout = True
     try:
         await ctx.message.add_reaction("✅")
-        msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:")
+        msg = await ctx.author.send("Please select up to three production categories you'd like a reminder for:\n🌿 Herbs\n🐰 Beasts\n⚒ Ores\nThen press the :white_check_mark:\n **Confirm** ")
         await msg.add_reaction("🌿")
         await msg.add_reaction("🐰")
         await msg.add_reaction("⚒")
@@ -107,25 +110,27 @@ async def send_harvest_form(ctx):
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
         except Exception as err:
             await ctx.author.send("You've timed out")
+            return
         # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
-        channel = discord.utils.get(client.private_channels)
-        time.sleep(2)
-        cached_msg = await channel.fetch_message(msg.id)
-        emoji_to_crop_mapping = {
-            "🌿": "herbs",
-            "🐰": "beasts",
-            "⚒": "ores"
-        }
-        categories_to_be_reminded_for = []
-        if cached_msg.reactions[4].count > 1:
-            await ctx.author.send("Very well you've canceled your request for a reminder.")
-        elif cached_msg.reactions[3].count > 1 and cached_msg.reactions[0].count == 1 and cached_msg.reactions[1].count == 1 and cached_msg.reactions[2].count == 1:
-            await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.")
-            categories_to_be_reminded_for= ["herbs", "beasts", "ores"]
-            await start_session(ctx, categories_to_be_reminded_for)
-        else:
-            categories_to_be_reminded_for += [emoji_to_crop_mapping[reaction.emoji] for reaction in cached_msg.reactions[0:3] if reaction.count > 1]
-            await start_session(ctx, categories_to_be_reminded_for)
+        if not_timeout:
+            channel = discord.utils.get(client.private_channels)
+            time.sleep(2)
+            cached_msg = await channel.fetch_message(msg.id)
+            emoji_to_crop_mapping = {
+                "🌿": "herbs",
+                "🐰": "beasts",
+                "⚒": "ores"
+            }
+            categories_to_be_reminded_for = []
+            if cached_msg.reactions[4].count > 1:
+                await ctx.author.send("Very well you've canceled your request for a reminder.")
+            elif cached_msg.reactions[3].count > 1 and cached_msg.reactions[0].count == 1 and cached_msg.reactions[1].count == 1 and cached_msg.reactions[2].count == 1:
+                await ctx.author.send("By default, you've chosen all 3 categories to be reminded for.")
+                categories_to_be_reminded_for = ["herbs", "beasts", "ores"]
+                await start_session(ctx, categories_to_be_reminded_for)
+            else:
+                categories_to_be_reminded_for += [emoji_to_crop_mapping[reaction.emoji] for reaction in cached_msg.reactions[0:3] if reaction.count > 1]
+                await start_session(ctx, categories_to_be_reminded_for)
     except Exception as err:
         print(err)
 
@@ -161,6 +166,7 @@ async def start_session(ctx, categories):
                     submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
                 except Exception as err:
                     await ctx.author.send("You've timed out")
+                    return
                 channel = discord.utils.get(client.private_channels)
                 time.sleep(1)
                 cached_msg = await channel.fetch_message(msg.id)
@@ -209,6 +215,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
         except Exception as err:
             await ctx.author.send("You've timed out")
+            return
         if submit_reaction.emoji in ["✅", "⏰"]:
             timezone_set = True
         elif submit_reaction.emoji in ["🗺️"]:
@@ -237,6 +244,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
                 submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
             except Exception as err:
                 await ctx.author.send("You've timed out")
+                return
             if submit_reaction.emoji == "✅":
                 insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
                 conn.execute(insert_statement)
