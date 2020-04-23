@@ -32,11 +32,11 @@ async def check_if_reminder_needed():
         res = conn.execute(select_st)
         for _row in res:
             user = client.get_user(_row[0])
-            past = datetime.datetime.now() - datetime.timedelta(seconds=30)
-            future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+            past = datetime.datetime.now() - datetime.timedelta(seconds=60)
+            future = datetime.datetime.now() + datetime.timedelta(seconds=60)
 
             if _row[2].time() > past.time() and _row[2].time() < future.time():
-                await user.send(f"Hello! You have a Homestead reminder for {_row[2].time().replace(microsecond=0).strftime('%H:%M')}")
+                await user.send(f"Hello! You have a Homestead reminder for {_row[3].time().replace(microsecond=0).strftime('%H:%M')}")
                 delete_entry = table.delete().where(
                     and_(
                         table.c.discordID == _row[0],
