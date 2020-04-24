@@ -244,28 +244,27 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
 @client.event
 async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array):
     is_a_valid_response = False
-    while not is_a_valid_response:
-        await ctx.author.send("In about how many more minutes would you like to receive your reminder? 200 minutes? Let me know.")
-        response_msg = await client.wait_for('message', check=check)
-        if hasNumbers(response_msg.clean_content):
-            reminder_time = time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
-            displayed_reminder_time = displayed_time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
-            await ctx.author.send(f'You will be reminded at {displayed_reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
-            prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you or ⏰ to tell us in how many minutes you would like to be reminded')
-            await prompt_check_reminder.add_reaction("✅")
-            await prompt_check_reminder.add_reaction("⏰")
-            try:
-                submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user and user.id == ctx.author.id)
-            except Exception as err:
-                await ctx.author.send("You've timed out. Please +home again.")
-                conn.close()
-                raise err
-            if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
-                insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
-                conn.execute(insert_statement)
-                await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
-                is_a_valid_response = True
-
+    await ctx.author.send("In about how many more minutes would you like to receive your reminder? 200 minutes? Let me know.")
+    response_msg = await client.wait_for('message', check=check)
+    if hasNumbers(response_msg.clean_content):
+        reminder_time = time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
+        displayed_reminder_time = displayed_time_now + datetime.timedelta(minutes=int(re.findall("\d+", response_msg.clean_content)[0]))
+        await ctx.author.send(f'You will be reminded at {displayed_reminder_time.time().replace(microsecond=0).strftime("%H:%M")} for the following products: {", ".join(reminder_crops_array)}')
+        prompt_check_reminder = await ctx.author.send('Press ✅ if this is okay with you or ⏰ to tell us in how many minutes you would like to be reminded')
+        await prompt_check_reminder.add_reaction("✅")
+        await prompt_check_reminder.add_reaction("⏰")
+        try:
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user and user.id == ctx.author.id)
+        except Exception as err:
+            await ctx.author.send("You've timed out. Please +home again.")
+            conn.close()
+            raise err
+        if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
+            insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+            conn.execute(insert_statement)
+            await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
+        elif submit_reaction.emoji == "⏰" and user.id == ctx.author.id:
+            await resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array)
 
 def check(message):
     return message.channel.type == discord.ChannelType.private
