@@ -63,7 +63,7 @@ async def check_user_region(ctx):
         select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
         res = conn.execute(select_st)
         server_timezone = res.first()
-        await ctx.author.send(f"Your timezone is {server_timezone[1]}")
+        await ctx.author.send(f"Your timezone is set in: {user_info[2]}")
         db.dispose()
         return server_timezone[1]
 
@@ -223,16 +223,11 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
     await prompt_check_reminder.add_reaction("⏰")
     await prompt_check_reminder.add_reaction("🗺️")
     try:
-        submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user and user.id == ctx.author.id)
+        submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user and user.id == ctx.author.id)
     except Exception as err:
         await ctx.author.send("You've timed out. Please +home again.")
         conn.close()
         raise err
-    if submit_reaction.emoji in ["✅", "⏰"] and user.id == ctx.author.id:
-        timezone_set = True
-    elif submit_reaction.emoji in ["🗺️"]:
-        await change_user_region(ctx)
-        await confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder)
     if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
         insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
         conn.execute(insert_statement)
