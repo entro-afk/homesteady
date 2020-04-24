@@ -48,7 +48,7 @@ async def check_user_region(ctx):
             await msg.add_reaction("🧀")
             await msg.add_reaction("🐨")
             try:
-                region_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+                region_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user and user.id == ctx.author.id)
                 insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
                 conn.execute(insert_statement)
                 res = conn.execute(select_st)
@@ -90,7 +90,7 @@ async def change_user_region(ctx):
         await msg.add_reaction("🧀")
         await msg.add_reaction("🐨")
         try:
-            region_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user)
+            region_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user and user.id == ctx.author.id)
             update_statement = discord_server_table.update().values(region=emoji_to_server_mapping[region_reaction.emoji]).where(discord_server_table.c.discordID == ctx.author.id)
             conn.execute(update_statement)
         except Exception as err:
@@ -113,7 +113,7 @@ async def send_harvest_form(ctx):
         await msg.add_reaction("✅")
         await msg.add_reaction("❌")
         try:
-            submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user and user.id == ctx.author.id)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
             raise err
@@ -170,7 +170,7 @@ async def start_session(ctx, categories):
                 await msg.add_reaction("✅")
                 await msg.add_reaction("❌")
                 try:
-                    submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
+                    submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user and user.id == ctx.author.id)
                 except Exception as err:
                     await ctx.author.send("You've timed out. Please +home again.")
                     conn.close()
@@ -223,7 +223,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
         await prompt_check_reminder.add_reaction("⏰")
         await prompt_check_reminder.add_reaction("🗺️")
         try:
-            submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
+            submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user and user.id == ctx.author.id)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
             conn.close()
@@ -254,7 +254,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
             await prompt_check_reminder.add_reaction("✅")
             await prompt_check_reminder.add_reaction("⏰")
             try:
-                submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
+                submit_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user and user.id == ctx.author.id)
             except Exception as err:
                 await ctx.author.send("You've timed out. Please +home again.")
                 conn.close()
