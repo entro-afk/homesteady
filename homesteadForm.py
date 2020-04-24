@@ -117,7 +117,7 @@ async def send_harvest_form(ctx):
             raise err
         # print(herbs_reaction, beasts_reaction, ores_reaction, submit_reaction)
         if not_timeout:
-            channel = discord.utils.get(client.private_channels)
+            channel = discord.utils.get([channel for channel in client.private_channels if channel.recipient.id == ctx.author.id])
             time.sleep(2)
             cached_msg = await channel.fetch_message(msg.id)
             emoji_to_crop_mapping = {
@@ -137,6 +137,7 @@ async def send_harvest_form(ctx):
                 await start_session(ctx, categories_to_be_reminded_for)
     except Exception as err:
         print(err)
+
 
 async def start_session(ctx, categories):
     try:
@@ -173,8 +174,8 @@ async def start_session(ctx, categories):
                     conn.close()
                     db.dispose()
                     raise err
-                channel = discord.utils.get(client.private_channels)
-                time.sleep(1)
+                channel = discord.utils.get([channel for channel in client.private_channels if channel.recipient.id == ctx.author.id])
+                time.sleep(2)
                 cached_msg = await channel.fetch_message(msg.id)
                 i = 0
                 for reaction in cached_msg.reactions[0:8]:
