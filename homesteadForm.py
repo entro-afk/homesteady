@@ -176,25 +176,26 @@ async def start_session(ctx, categories):
                     conn.close()
                     db.dispose()
                     raise err
-                channel = discord.utils.get([channel for channel in client.private_channels if channel.recipient.id == ctx.author.id])
-                time.sleep(2)
-                cached_msg = await channel.fetch_message(msg.id)
-                i = 0
-                for reaction in cached_msg.reactions[0:8]:
-                    emoji_to_crop_mapping[reaction.emoji] = crop_results[i]
-                    i += 1
-                canceled = len(list(filter(lambda reaction: reaction.emoji in ["❌"], cached_msg.reactions))) > 1
-                if not canceled:
-                    selected_reactions = [reaction.emoji for reaction in cached_msg.reactions if reaction.count > 1 and reaction.emoji not in ["✅", "❌"]]
-                    if len(selected_reactions) < 1:
-                        await ctx.author.send("You did not select any crops")
+                if user.id == ctx.author.id:
+                    channel = discord.utils.get([channel for channel in client.private_channels if channel.recipient.id == ctx.author.id])
+                    time.sleep(2)
+                    cached_msg = await channel.fetch_message(msg.id)
+                    i = 0
+                    for reaction in cached_msg.reactions[0:8]:
+                        emoji_to_crop_mapping[reaction.emoji] = crop_results[i]
+                        i += 1
+                    canceled = len(list(filter(lambda reaction: reaction.emoji in ["❌"], cached_msg.reactions))) > 1
+                    if not canceled:
+                        selected_reactions = [reaction.emoji for reaction in cached_msg.reactions if reaction.count > 1 and reaction.emoji not in ["✅", "❌"]]
+                        if len(selected_reactions) < 1:
+                            await ctx.author.send("You did not select any crops")
+                        else:
+                            await ctx.author.send(f'You\'ve selected the following crops: {", ".join([emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions])}')
+                            four_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 4]
+                            eight_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 8]
+                            twelve_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 12]
                     else:
-                        await ctx.author.send(f'You\'ve selected the following crops: {", ".join([emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions])}')
-                        four_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 4]
-                        eight_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 8]
-                        twelve_hour_reminder_crops += [emoji_to_crop_mapping[reaction][0] for reaction in selected_reactions if emoji_to_crop_mapping[reaction][1] == 12]
-                else:
-                    await ctx.author.send("You have canceled this category's session")
+                        await ctx.author.send("You have canceled this category's session")
         with db.connect() as conn:
             table = Table('alarms', metadata, autoload=True, autoload_with=conn)
             if len(four_hour_reminder_crops) > 0:
@@ -228,15 +229,15 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
             await ctx.author.send("You've timed out. Please +home again.")
             conn.close()
             raise err
-        if submit_reaction.emoji in ["✅", "⏰"]:
+        if submit_reaction.emoji in ["✅", "⏰"] and user.id == ctx.author.id:
             timezone_set = True
         elif submit_reaction.emoji in ["🗺️"]:
             await change_user_region(ctx)
-    if submit_reaction.emoji == "✅":
+    if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
         insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
         conn.execute(insert_statement)
         await ctx.author.send(f'We have placed a {hours_reminder}-hour reminder for you for the following products: {", ".join(reminder_crops_array)}')
-    elif submit_reaction.emoji == "⏰":
+    elif submit_reaction.emoji == "⏰" and user.id == ctx.author.id:
         await resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array)
 
 
@@ -259,7 +260,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
                 await ctx.author.send("You've timed out. Please +home again.")
                 conn.close()
                 raise err
-            if submit_reaction.emoji == "✅":
+            if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
                 insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
                 conn.execute(insert_statement)
                 await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
