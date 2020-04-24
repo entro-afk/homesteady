@@ -141,7 +141,7 @@ async def send_harvest_form(ctx):
 async def start_session(ctx, categories):
     try:
         db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
-        db = create_engine(db_string, echo=True)
+        db = create_engine(db_string)
         metadata = MetaData(schema="homesteadProduction")
         four_hour_reminder_crops = []
         eight_hour_reminder_crops = []
@@ -200,6 +200,7 @@ async def start_session(ctx, categories):
                 await confirm_time(ctx, conn, table, eight_hour_reminder_crops, 8)
             if len(twelve_hour_reminder_crops) > 0:
                 await confirm_time(ctx, conn, table, twelve_hour_reminder_crops, 12)
+
         db.dispose()
     except Exception as err:
         print(f"Error: {err}")
