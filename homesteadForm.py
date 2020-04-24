@@ -24,6 +24,7 @@ with open(r'homesteadyConf.yaml') as file:
     print(homesteadyConf)
 
 
+@client.event
 async def check_user_region(ctx):
     db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
     db = create_engine(db_string, echo=True)
@@ -66,7 +67,7 @@ async def check_user_region(ctx):
         db.dispose()
         return server_timezone[1]
 
-
+@client.event
 async def change_user_region(ctx):
     db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
     db = create_engine(db_string, echo=True)
@@ -98,6 +99,7 @@ async def change_user_region(ctx):
             db.dispose()
             raise err
     db.dispose()
+
 
 @client.command(pass_context=True, name='home')
 async def send_harvest_form(ctx):
@@ -138,7 +140,7 @@ async def send_harvest_form(ctx):
     except Exception as err:
         print(err)
 
-
+@client.event
 async def start_session(ctx, categories):
     try:
         db_string = "postgres+psycopg2://postgres:{password}@{host}:{port}/postgres".format(username='root', password=homesteadyConf['postgres']['pwd'], host=homesteadyConf['postgres']['host'], port=homesteadyConf['postgres']['port'])
@@ -206,6 +208,7 @@ async def start_session(ctx, categories):
     except Exception as err:
         print(f"Error: {err}")
 
+@client.event
 async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
     timezone_set = False
     while not timezone_set:
@@ -237,6 +240,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
         await resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array)
 
 
+@client.event
 async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_crops_array):
     is_a_valid_response = False
     while not is_a_valid_response:
