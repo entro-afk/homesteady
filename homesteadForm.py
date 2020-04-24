@@ -55,15 +55,15 @@ async def check_user_region(ctx):
             except Exception as err:
                 print(err)
                 await ctx.author.send("You've timed out. Please +home again.")
-                
-                
+                conn.close()
+                db.dispose()
                 raise err
         server_timezone_mapping_table = Table('serverTimezoneMapping', metadata, autoload=True, autoload_with=conn)
         select_st = select([server_timezone_mapping_table]).where(server_timezone_mapping_table.c.server == user_info[2])
         res = conn.execute(select_st)
         server_timezone = res.first()
         await ctx.author.send(f"Your timezone is {server_timezone[1]}")
-        
+        db.dispose()
         return server_timezone[1]
 
 
@@ -94,10 +94,10 @@ async def change_user_region(ctx):
             conn.execute(update_statement)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
-            
-            
+            conn.close()
+            db.dispose()
             raise err
-    
+    db.dispose()
 
 @client.command(pass_context=True, name='home')
 async def send_harvest_form(ctx):
@@ -170,8 +170,8 @@ async def start_session(ctx, categories):
                     submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "❌"] and user != client.user)
                 except Exception as err:
                     await ctx.author.send("You've timed out. Please +home again.")
-                    
-                    
+                    conn.close()
+                    db.dispose()
                     raise err
                 channel = discord.utils.get(client.private_channels)
                 time.sleep(1)
@@ -200,7 +200,7 @@ async def start_session(ctx, categories):
                 await confirm_time(ctx, conn, table, eight_hour_reminder_crops, 8)
             if len(twelve_hour_reminder_crops) > 0:
                 await confirm_time(ctx, conn, table, twelve_hour_reminder_crops, 12)
-        
+        db.dispose()
     except Exception as err:
         print(f"Error: {err}")
 
@@ -221,7 +221,7 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
             submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰", "🗺️"] and user != client.user)
         except Exception as err:
             await ctx.author.send("You've timed out. Please +home again.")
-            
+            conn.close()
             raise err
         if submit_reaction.emoji in ["✅", "⏰"]:
             timezone_set = True
@@ -251,7 +251,7 @@ async def resend_form(ctx, conn, table, time_now, displayed_time_now, reminder_c
                 submit_reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=lambda reaction, user: reaction.emoji in ["✅", "⏰"] and user != client.user)
             except Exception as err:
                 await ctx.author.send("You've timed out. Please +home again.")
-                
+                conn.close()
                 raise err
             if submit_reaction.emoji == "✅":
                 insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
