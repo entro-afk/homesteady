@@ -254,7 +254,7 @@ async def resend_form(ctx, id,  conn, table, time_now, displayed_time_now, remin
             conn.close()
             raise err
         if submit_reaction.emoji == "✅" and user.id == id:
-            insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+            insert_statement = table.insert().values(discordID=id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
             conn.execute(insert_statement)
             await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
         elif submit_reaction.emoji == "⏰" and user.id == id:
