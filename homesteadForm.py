@@ -199,18 +199,18 @@ async def start_session(ctx, categories):
         with db.connect() as conn:
             table = Table('alarms', metadata, autoload=True, autoload_with=conn)
             if len(four_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, four_hour_reminder_crops, 4)
+                await confirm_time(ctx, metadata, conn, table, four_hour_reminder_crops, 4)
             if len(eight_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, eight_hour_reminder_crops, 8)
+                await confirm_time(ctx, metadata, conn, table, eight_hour_reminder_crops, 8)
             if len(twelve_hour_reminder_crops) > 0:
-                await confirm_time(ctx, conn, table, twelve_hour_reminder_crops, 12)
+                await confirm_time(ctx, metadata, conn, table, twelve_hour_reminder_crops, 12)
 
         db.dispose()
     except Exception as err:
         print(f"Error: {err}")
 
 @client.event
-async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
+async def confirm_time(ctx, metadata, conn, table, reminder_crops_array, hours_reminder):
     timezone_set = False
     timezone = await check_user_region(ctx)
     time_now = datetime.datetime.combine(datetime.date.today(), datetime.datetime.now().time())
@@ -230,14 +230,16 @@ async def confirm_time(ctx, conn, table, reminder_crops_array, hours_reminder):
     if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
         insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
         conn.execute(insert_statement)
+        logs_table = Table('alarmsLog', metadata, autoload=True, autoload_with=conn)
+        insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+        conn.execute(insert_logs)
         await ctx.author.send(f'We have placed a {hours_reminder}-hour reminder for you for the following products: {", ".join(reminder_crops_array)}')
     elif submit_reaction.emoji == "⏰" and user.id == ctx.author.id:
-        await resend_form(ctx, user.id, conn, table, time_now, displayed_time_now, reminder_crops_array)
+        await resend_form(ctx, user.id, metadata, conn, table, time_now, displayed_time_now, reminder_crops_array)
 
 
 @client.event
-async def resend_form(ctx, id,  conn, table, time_now, displayed_time_now, reminder_crops_array):
-    is_a_valid_response = False
+async def resend_form(ctx, id,  metadata, conn, table, time_now, displayed_time_now, reminder_crops_array):
     await ctx.author.send("In about how many more minutes would you like to receive your reminder? 200 minutes? Let me know.")
     response_msg = await client.wait_for('message', check=check)
     if hasNumbers(response_msg.clean_content):
@@ -256,6 +258,9 @@ async def resend_form(ctx, id,  conn, table, time_now, displayed_time_now, remin
         if submit_reaction.emoji == "✅" and user.id == id:
             insert_statement = table.insert().values(discordID=id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
             conn.execute(insert_statement)
+            logs_table = Table('alarmsLog', metadata, autoload=True, autoload_with=conn)
+            insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+            conn.execute(insert_logs)
             await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
         elif submit_reaction.emoji == "⏰" and user.id == id:
             await resend_form(ctx, id, conn, table, time_now, displayed_time_now, reminder_crops_array)
