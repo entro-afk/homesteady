@@ -49,7 +49,7 @@ async def check_user_region(ctx):
             await msg.add_reaction("🐨")
             try:
                 region_reaction, user = await client.wait_for('reaction_add', timeout=600.0, check=lambda reaction, user: reaction.emoji in ["🗽", "⚽", "🧀", "🐨"] and user != client.user and user.id == ctx.author.id)
-                insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
+                insert_statement = discord_server_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.name, region=emoji_to_server_mapping[region_reaction.emoji])
                 conn.execute(insert_statement)
                 res = conn.execute(select_st)
                 user_info = res.first()
@@ -228,10 +228,10 @@ async def confirm_time(ctx, metadata, conn, table, reminder_crops_array, hours_r
         conn.close()
         raise err
     if submit_reaction.emoji == "✅" and user.id == ctx.author.id:
-        insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+        insert_statement = table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
         conn.execute(insert_statement)
         logs_table = Table('alarmsLog', metadata, autoload=True, autoload_with=conn)
-        insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+        insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
         conn.execute(insert_logs)
         await ctx.author.send(f'We have placed a {hours_reminder}-hour reminder for you for the following products: {", ".join(reminder_crops_array)}')
     elif submit_reaction.emoji == "⏰" and user.id == ctx.author.id:
@@ -256,10 +256,10 @@ async def resend_form(ctx, id,  metadata, conn, table, time_now, displayed_time_
             conn.close()
             raise err
         if submit_reaction.emoji == "✅" and user.id == id:
-            insert_statement = table.insert().values(discordID=id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+            insert_statement = table.insert().values(discordID=id, discordNicknameOrName=ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
             conn.execute(insert_statement)
             logs_table = Table('alarmsLog', metadata, autoload=True, autoload_with=conn)
-            insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.display_name or ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
+            insert_logs = logs_table.insert().values(discordID=ctx.author.id, discordNicknameOrName=ctx.author.name, timeToNotify=reminder_time, displayedTimeToNotify=displayed_reminder_time.replace(tzinfo=None), itemsWComma=", ".join(reminder_crops_array))
             conn.execute(insert_logs)
             await ctx.author.send(f"Your reminder for {displayed_reminder_time.time().replace(microsecond=0).strftime('%H:%M')} has been confirmed")
         elif submit_reaction.emoji == "⏰" and user.id == id:
